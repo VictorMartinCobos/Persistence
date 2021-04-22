@@ -30,14 +30,22 @@ data_tidy <-tidy_csv(data)
 #Persistence model
 persistence_model <- function(hour, data, day) {
   asked_hour <- dmy_h(str_c(day, hour, "H", sep = " "))
-  while(length(pull(filter(data, ts == asked_hour),ts)) == 0) {
-    asked_hour <- asked_hour - dweeks(1)
+  repeat {
+    length <- data %>% 
+      filter(ts == asked_hour) %>% 
+      pull(ts) %>% 
+      length()
+    if (length == 0) asked_hour <- asked_hour - weeks()
+    else {
+      return(
+        data %>%
+          filter(ts == asked_hour) %>%
+          transmute(ts = dmy_h(str_c(day, hour, "H", sep = " ")), consumption)
+      )
+    }
   }
-  return(data %>% 
-           filter(ts == asked_hour) %>% 
-           transmute(ts = dmy_h(str_c(day, hour, "H", sep = " ")), consumption))
 }
-
+  
 persistence_predict <- function(data, day) {
   map_df(0:23, persistence_model, data, day)
 }
