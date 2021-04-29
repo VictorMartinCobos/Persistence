@@ -2,6 +2,7 @@
 library(tidyverse)
 library(lubridate)
 source("utils.R")
+source("persistence.R")
 
 #Select a Directory
 directory_path <- rstudioapi::selectDirectory(
@@ -26,26 +27,3 @@ data <- reduce(csv_list, bind_rows)
 
 #Tidy csv
 data_tidy <-tidy_csv(data)
-
-#Persistence model
-persistence_model <- function(hour, data, day) {
-  asked_hour <- dmy_h(str_c(day, hour, "H", sep = " "))
-  repeat {
-    length <- data %>% 
-      filter(ts == asked_hour) %>% 
-      pull(ts) %>% 
-      length()
-    if (length == 0) asked_hour <- asked_hour - weeks()
-    else {
-      return(
-        data %>%
-          filter(ts == asked_hour) %>%
-          transmute(ts = dmy_h(str_c(day, hour, "H", sep = " ")), consumption)
-      )
-    }
-  }
-}
-  
-persistence_predict <- function(data, day) {
-  map_df(0:23, persistence_model, data, day)
-}
