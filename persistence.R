@@ -86,12 +86,9 @@ persistence_predict_3_b <- function(data, day) {
 #Persistence Model 4
 persistence_predict_4 <- function(data, dt) {
   data %>% 
-    filter(ts <= dt, wday(ts) == wday(dt)) %>% 
-    complete(
-      ts = seq(from = as_datetime(dt), to = dt + hours(23), by = "hours")
-    ) %>% 
+    complete(ts = seq(from = dt, to = dt + hours(23), by = "hours")) %>% 
     arrange(ts) %>% 
-    group_by(hour(ts)) %>% 
+    group_by(hour(ts), wday(ts)) %>% 
     fill(consumption) %>% 
     ungroup() %>% 
     filter(date(ts) == date(dt)) %>% 
