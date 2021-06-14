@@ -80,17 +80,30 @@ persistence_model_3_b <- function(data, dt) {
 
 persistence_predict_3_b <- function(data, day) {
   dt <- seq(from = as_datetime(day), to = day + hours(23), by = "hours")
-  map_df(dt, ~persistence_model_3_b(data, .x))
+  map_df(dt, persistence_model_3_b, data = data)
 }
 
 #Persistence Model 4
 persistence_predict_4 <- function(data, dt) {
   data %>% 
-    complete(ts = seq(from = dt, to = dt + hours(23), by = "hours")) %>% 
     arrange(ts) %>% 
+    complete(ts = seq(from = dt, to = dt + hours(23), by = "hours")) %>% 
     group_by(hour(ts), wday(ts)) %>% 
     fill(consumption) %>% 
     ungroup() %>% 
     filter(date(ts) == date(dt)) %>% 
     transmute(ts, consumption)
 }
+
+#Persistence Model 5
+persistence_data <- function(data) {
+  data %>% 
+    complete(ts = seq(from = min(ts), to = max(ts), by = "hours")) %>% 
+    arrange(ts) %>% 
+    mutate(consumption_pred = lag(consumption, 24*7)) %>% 
+    group_by(hour(ts), wday(ts)) %>% 
+    fill(consumption_pred) %>% 
+    ungroup() %>% 
+    select(ts, consumption, consumption_pred)
+}
+
