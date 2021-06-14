@@ -28,7 +28,8 @@ tidy_csv <- function(file) {
     transmute(
       ts = with_tz(parse(n, hour, date), tz = "UTC"),
       consumption
-    )
+    ) %>% 
+    arrange(ts)
 }
 
 #Parse function
