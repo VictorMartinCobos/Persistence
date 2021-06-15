@@ -95,7 +95,7 @@ persistence_predict_4 <- function(data, dt) {
     transmute(ts, consumption)
 }
 
-#Persistence Model 5
+#Persistence Model 5. Applied to all the dataset
 persistence_data <- function(data) {
   data %>% 
     complete(ts = seq(from = min(ts), to = max(ts), by = "hours")) %>% 
@@ -107,3 +107,65 @@ persistence_data <- function(data) {
     select(ts, consumption, consumption_pred)
 }
 
+#Persistence Model 6. New variable: original date from prediction
+##Ifelse version
+persistence_data_date_ifelse <- function(data) {
+  data %>% 
+    complete(ts = seq(from = min(ts), to = max(ts), by = "hours")) %>% 
+    arrange(ts) %>% 
+    mutate(consumption_pred = lag(consumption, 24*7),
+           ts_pred = lag(ts, 24*7)) %>% 
+    mutate(ts_pred = ifelse(is.na(consumption_pred), NA, ts_pred)) %>% 
+    group_by(hour(ts), wday(ts)) %>% 
+    fill(consumption_pred, ts_pred) %>% 
+    ungroup() %>% 
+    transmute(ts, consumption, consumption_pred, ts_pred = as_datetime(ts_pred))
+}
+
+##If_else version
+persistence_data_date_if_else <- function(data) {
+  data %>% 
+    complete(ts = seq(from = min(ts), to = max(ts), by = "hours")) %>% 
+    arrange(ts) %>% 
+    mutate(consumption_pred = lag(consumption, 24*7),
+           ts_pred = lag(ts, 24*7)) %>% 
+    mutate(ts_pred = if_else(is.na(consumption_pred), NA_POSIXct_, ts_pred)) %>% 
+    group_by(hour(ts), wday(ts)) %>% 
+    fill(consumption_pred, ts_pred) %>% 
+    ungroup() %>% 
+    transmute(ts, consumption, consumption_pred, ts_pred = as_datetime(ts_pred))
+}
+
+##Case_when version
+persistence_data_date_case_when <- function(data) {
+  data %>% 
+    complete(ts = seq(from = min(ts), to = max(ts), by = "hours")) %>% 
+    arrange(ts) %>% 
+    mutate(consumption_pred = lag(consumption, 24*7),
+           ts_pred = lag(ts, 24*7)) %>% 
+    mutate(ts_pred = case_when(
+      is.na(consumption_pred) ~ NA_POSIXct_,
+      TRUE ~ ts_pred
+      )
+    ) %>% 
+    group_by(hour(ts), wday(ts)) %>% 
+    fill(consumption_pred, ts_pred) %>% 
+    ungroup() %>% 
+    transmute(ts, consumption, consumption_pred, ts_pred = as_datetime(ts_pred))
+}
+
+##Mutate at start version
+persistence_data_date_faster <- function(data) {
+  data %>% 
+    arrange(ts) %>% 
+    mutate(ts_pred = ts) %>% 
+    complete(ts = seq(from = min(ts), to = max(ts), by = "hours")) %>% 
+    mutate(consumption_pred = lag(consumption, 24*7),
+           ts_pred = lag(ts_pred, 24*7)) %>% 
+    group_by(hour(ts), wday(ts)) %>% 
+    fill(consumption_pred, ts_pred) %>% 
+    ungroup() %>% 
+    select(ts, consumption, consumption_pred, ts_pred)
+}
+
+test <- data_tidy[-338, ] #24/01/2017 00H
